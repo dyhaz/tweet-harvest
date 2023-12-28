@@ -265,8 +265,6 @@ export async function crawl({
 
             const rows = comingFavs.reduce((prev: [], current: (typeof favorites)[0]) => {
 
-
-              console.log(current);
               if (current.entryId.indexOf('user') > -1 && current?.content?.itemContent?.user_results?.result) {
                 const tweet = pick({ id: current?.content?.itemContent?.user_results?.result?.id, ...current.content.itemContent.user_results.result.legacy }, filteredFavFields);
 
@@ -295,10 +293,10 @@ export async function crawl({
             // for every multiple of 100, wait for 5 seconds
             if (additionalTweetsCount > 100) {
               additionalTweetsCount = 0;
-              if (DELAY_EVERY_100_TWEETS_SECONDS) {
-                console.info(chalk.gray(`\n--Taking a break, waiting for ${DELAY_EVERY_100_TWEETS_SECONDS} seconds...`));
-                await page.waitForTimeout(DELAY_EVERY_100_TWEETS_SECONDS * 1000);
-              }
+              // if (DELAY_EVERY_100_TWEETS_SECONDS) {
+                console.info(chalk.gray(`\n--Taking a break, waiting for 3 seconds...`));
+                await page.waitForTimeout(3 * 1000);
+              // }
             } else if (additionalTweetsCount > 20) {
               await page.waitForTimeout(DELAY_EACH_TWEET_SECONDS * 1000);
             }
@@ -307,7 +305,7 @@ export async function crawl({
             console.info(chalk.gray("Scrolling more..."));
 
             if (timeoutCount > TIMEOUT_LIMIT) {
-              console.info(chalk.yellow("No more tweets found, please check your search criteria and csv file result"));
+              console.info(chalk.yellow("No more favs found, please check your search criteria and csv file result"));
               break;
             }
 
