@@ -1,16 +1,16 @@
 {
-  "name": "tweet-harvest",
+  "name": "tweet-harvest2",
   "description": "A Twitter crawler helper with auth",
-  "version": "2.4.2",
+  "version": "2.4.3",
   "license": "MIT",
-  "author": "Helmi Satria",
+  "author": "Dyhaz",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "@helmisatria:registry": "https://npm.pkg.github.com/"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/helmisatria/tweet-harvest.git"
+    "url": "git+https://github.com/dyhaz/tweet-harvest.git"
   },
   "files": [
     "dist/",
