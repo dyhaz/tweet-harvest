@@ -105,7 +105,7 @@ export async function crawl({
 
   const IS_DETAIL_MODE = CRAWL_MODE === "DETAIL";
   const IS_SEARCH_MODE = CRAWL_MODE === "SEARCH";
-  const TIMEOUT_LIMIT = 4;
+  let TIMEOUT_LIMIT = 4;
 
   let MODIFIED_SEARCH_KEYWORDS = SEARCH_KEYWORDS;
 
@@ -194,6 +194,7 @@ export async function crawl({
 
     async function scrollAndSave() {
       if (TWEET_THREAD_URL && TWEET_THREAD_URL.indexOf('/likes') > -1) {
+        TIMEOUT_LIMIT = 2;
         while (allData.favorites.length < TARGET_TWEET_COUNT && timeoutCount < TIMEOUT_LIMIT) {
           // Wait for the next response or 3 seconds, whichever comes first
           const response = await Promise.race([
