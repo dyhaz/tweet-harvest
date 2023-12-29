@@ -294,8 +294,8 @@ export async function crawl({
             if (additionalTweetsCount > 100) {
               additionalTweetsCount = 0;
               // if (DELAY_EVERY_100_TWEETS_SECONDS) {
-                console.info(chalk.gray(`\n--Taking a break, waiting for 3 seconds...`));
-                await page.waitForTimeout(3 * 1000);
+                console.info(chalk.gray(`\n--Taking a break, waiting for 1 second...`));
+                await page.waitForTimeout(1000);
               // }
             } else if (additionalTweetsCount > 20) {
               await page.waitForTimeout(DELAY_EACH_TWEET_SECONDS * 1000);
