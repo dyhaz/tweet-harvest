@@ -4,7 +4,7 @@ import { ACCESS_TOKEN } from "./env";
 crawl({
   ACCESS_TOKEN: ACCESS_TOKEN,
   SEARCH_KEYWORDS: `gibran lang:id`,
-  TWEET_THREAD_URL: "https://twitter.com/pangeransiahaan/status/1690590234009112576/likes",
+  TWEET_THREAD_URL: "https://twitter.com/pangeransiahaan/status/1690590234009112576/retweets",
   TARGET_TWEET_COUNT: 100000,
   OUTPUT_FILENAME: "gibran.csv",
   DELAY_EACH_TWEET_SECONDS: 0.1,
