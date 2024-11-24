@@ -12,6 +12,7 @@ import { calculateForRateLimit } from "./features/exponential-backoff";
 import { HEADLESS_MODE } from "./env";
 import { TWITTER_SEARCH_ADVANCED_URL } from "./constants";
 import { FavEntry } from "./types/favorites.types";
+import { RetweetEntry } from "./types/retweets.types";
 
 chromium.use(stealth());
 
@@ -83,7 +84,8 @@ export async function crawl({
   TARGET_TWEET_COUNT = 10,
   // default delay each tweet activity: 3 seconds
   DELAY_EACH_TWEET_SECONDS = 3,
-  DELAY_EVERY_100_TWEETS_SECONDS = 10,
+  DELAY_EACH_LIKES_SECONDS = 1,
+  DELAY_EVERY_100_TWEETS_SECONDS = 5,
   DEBUG_MODE,
   OUTPUT_FILENAME,
   SEARCH_TAB = "LATEST",
@@ -94,6 +96,7 @@ export async function crawl({
   SEARCH_TO_DATE?: string;
   TARGET_TWEET_COUNT?: number;
   DELAY_EACH_TWEET_SECONDS?: number;
+  DELAY_EACH_LIKES_SECONDS?: number;
   DELAY_EVERY_100_TWEETS_SECONDS?: number;
   DEBUG_MODE?: boolean;
   OUTPUT_FILENAME?: string;
@@ -291,7 +294,6 @@ export async function crawl({
             console.info(chalk.yellow(`Total user profiles saved: ${allData.favorites.length}`));
             additionalTweetsCount += favorites.length;
 
-            // for every multiple of 100, wait for 5 seconds
             if (additionalTweetsCount > 100) {
               additionalTweetsCount = 0;
               // if (DELAY_EVERY_100_TWEETS_SECONDS) {
@@ -299,7 +301,7 @@ export async function crawl({
                 await page.waitForTimeout(1000);
               // }
             } else if (additionalTweetsCount > 20) {
-              await page.waitForTimeout(DELAY_EACH_TWEET_SECONDS * 1000);
+              await page.waitForTimeout(DELAY_EACH_LIKES_SECONDS * 1000);
             }
           } else {
             timeoutCount++;
@@ -329,7 +331,135 @@ export async function crawl({
         }
       } else if (TWEET_THREAD_URL && TWEET_THREAD_URL.indexOf('/retweets')  > -1) {
         while (allData.reposts.length < TARGET_TWEET_COUNT && timeoutCount < TIMEOUT_LIMIT) {
-          // NOT IMPLEMENTED YET
+          // Wait for the next response or 3 seconds, whichever comes first
+          const response = await Promise.race([
+            // includes "SearchTimeline" because it's the endpoint for the search result
+            // or also includes "TweetDetail" because it's the endpoint for the tweet detail
+            page.waitForResponse(
+              (response) => response.url().includes("Retweeters")
+            ),
+            page.waitForTimeout(5000),
+          ]);
+
+          if (response) {
+            timeoutCount = 0;
+
+            let retweetEntries: RetweetEntry[] = [];
+
+            let responseJson;
+
+            try {
+              responseJson = await response.json();
+            } catch (error) {
+              if ((await response.text()).toLowerCase().includes("rate limit")) {
+                console.error(`Error parsing response json: ${JSON.stringify(response)}`);
+                console.error(
+                  `Most likely, you have already exceeded the Twitter rate limit. Read more on https://twitter.com/elonmusk/status/1675187969420828672?s=46.`
+                );
+
+                // wait for rate limit window passed before retrying
+                await page.waitForTimeout(calculateForRateLimit(rateLimitCount++));
+
+                // click retry
+                await page.click("text=Retry");
+                return await scrollAndSave(); // recursive call
+              }
+
+              break;
+            }
+
+            // reset the rate limit exception count
+            rateLimitCount = 0;
+
+            retweetEntries = responseJson.data?.retweeters_timeline.timeline.instructions[0].entries;
+
+            if (!retweetEntries) {
+              console.error("No more retweets found");
+              return;
+            }
+
+
+            const headerRow = filteredFavFields.map((field) => `"${field}"`).join(",") + "\n";
+
+            if (!headerWritten) {
+              headerWritten = true;
+              appendCsv(FILE_NAME, headerRow);
+            }
+
+            // add tweets and users to allData
+            allData.reposts.push(...retweetEntries);
+
+            // write tweets to CSV file
+            const comingFavs = retweetEntries;
+
+            if (!fs.existsSync(FOLDER_DESTINATION)) {
+              const dir = fs.mkdirSync(FOLDER_DESTINATION, { recursive: true });
+              const dirFullPath = path.resolve(dir);
+
+              console.info(chalk.green(`Created new directory: ${dirFullPath}`));
+            }
+
+            const rows = comingFavs.reduce((prev: [], current: (typeof retweetEntries)[0]) => {
+
+              if (current.entryId.indexOf('user') > -1 && current?.content?.itemContent?.user_results?.result) {
+                const tweet = pick({ id: current?.content?.itemContent?.user_results?.result?.id, ...current.content.itemContent.user_results.result.legacy }, filteredFavFields);
+
+                let cleanText1 = `${current.content.itemContent.user_results.result.legacy.description.replace(/,/g, " ").replace(/\n/g, " ")}`;
+                let cleanText2 = `${current.content.itemContent.user_results.result.legacy.name.replace(/,/g, " ").replace(/\n/g, " ")}`;
+                tweet["description"] = cleanText1;
+                tweet["name"] = cleanText2;
+
+                const row = Object.values(convertValuesToStrings(tweet)).join(",");
+
+                return [...prev, row];
+              } else {
+                return [...prev];
+              }
+            }, []);
+
+            const csv = (rows as []).join("\n") + "\n";
+            const fullPathFilename = appendCsv(FILE_NAME, csv);
+
+            console.info(chalk.blue(`Your user profiles saved to: ${fullPathFilename}`));
+
+            // progress:
+            console.info(chalk.yellow(`Total user profiles saved: ${allData.reposts.length}`));
+            additionalTweetsCount += retweetEntries.length;
+
+            if (additionalTweetsCount > 100) {
+              additionalTweetsCount = 0;
+              // if (DELAY_EVERY_100_TWEETS_SECONDS) {
+              console.info(chalk.gray(`\n--Taking a break, waiting for 1 second...`));
+              await page.waitForTimeout(1000);
+              // }
+            } else if (additionalTweetsCount > 20) {
+              await page.waitForTimeout(DELAY_EACH_LIKES_SECONDS * 1000);
+            }
+          } else {
+            timeoutCount++;
+            console.info(chalk.gray("Scrolling more..."));
+
+            if (timeoutCount > TIMEOUT_LIMIT) {
+              console.info(chalk.yellow("No more reposts found, please check your search criteria and csv file result"));
+              break;
+            }
+
+            await page.evaluate(() =>
+              window.scrollTo({
+                behavior: "smooth",
+                top: 10_000 * 9_000,
+              })
+            );
+
+            await scrollAndSave(); // call the function again to resume scrolling
+          }
+
+          await page.evaluate(() =>
+            window.scrollTo({
+              behavior: "smooth",
+              top: 10_000 * 9_000,
+            })
+          );
         }
       } else {
         while (allData.tweets.length < TARGET_TWEET_COUNT && timeoutCount < TIMEOUT_LIMIT) {
