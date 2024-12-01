@@ -141,7 +141,7 @@ export async function crawl({
         {
           name: "auth_token",
           value: ACCESS_TOKEN,
-          domain: "twitter.com",
+          domain: "x.com",
           path: "/",
           expires: -1,
           httpOnly: true,
@@ -331,12 +331,17 @@ export async function crawl({
         }
       } else if (TWEET_THREAD_URL && TWEET_THREAD_URL.indexOf('/retweets')  > -1) {
         while (allData.reposts.length < TARGET_TWEET_COUNT && timeoutCount < TIMEOUT_LIMIT) {
+          console.log('alldata', allData);
+
           // Wait for the next response or 3 seconds, whichever comes first
           const response = await Promise.race([
             // includes "SearchTimeline" because it's the endpoint for the search result
             // or also includes "TweetDetail" because it's the endpoint for the tweet detail
             page.waitForResponse(
-              (response) => response.url().includes("Retweeters")
+              (response) => {
+                console.log('url', response.url());
+                return response.url().includes("Retweeters")
+              }
             ),
             page.waitForTimeout(5000),
           ]);
@@ -371,6 +376,7 @@ export async function crawl({
             // reset the rate limit exception count
             rateLimitCount = 0;
 
+            console.log('data', responseJson.data?.tweetResult?.result);
             retweetEntries = responseJson.data?.retweeters_timeline.timeline.instructions[0].entries;
 
             if (!retweetEntries) {
