@@ -2,6 +2,15 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var crawl_1 = require("./crawl");
 var env_1 = require("./env");
+// crawl({
+//   ACCESS_TOKEN: ACCESS_TOKEN,
+//   SEARCH_KEYWORDS: `miftah lang:id`,
+//   TARGET_TWEET_COUNT: 100,
+//   OUTPUT_FILENAME: "miftah.csv",
+//   DELAY_EACH_TWEET_SECONDS: 0.1,
+//   DELAY_EVERY_100_TWEETS_SECONDS: 0,
+//   SEARCH_TAB: "TOP",
+// });
 (0, crawl_1.crawl)({
     ACCESS_TOKEN: env_1.ACCESS_TOKEN,
     SEARCH_KEYWORDS: "gibran lang:id",

@@ -113,6 +113,7 @@ var filteredFields = [
     "reply_count",
     "retweet_count",
     "favorite_count",
+    "bookmark_count",
     "lang",
     "user_id_str",
     "conversation_id_str",
@@ -532,14 +533,14 @@ function crawl(_a) {
                                                     }
                                                     _u.label = 12;
                                                 case 12:
-                                                    headerRow = filteredFields.map(function (field) { return "\"".concat(field, "\""); }).join(",") + "\n";
+                                                    headerRow = __spreadArray(__spreadArray([], filteredFields, true), ["views_count"], false).map(function (field) { return "\"".concat(field, "\""); }).join(",") + "\n";
                                                     if (!headerWritten) {
                                                         headerWritten = true;
                                                         appendCsv(FILE_NAME, headerRow);
                                                     }
                                                     tweetContents_1 = tweets
                                                         .map(function (tweet) {
-                                                        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y;
+                                                        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z;
                                                         var isPromotedTweet = tweet.entryId.includes("promoted");
                                                         if (IS_SEARCH_MODE && !((_c = (_b = (_a = tweet === null || tweet === void 0 ? void 0 : tweet.content) === null || _a === void 0 ? void 0 : _a.itemContent) === null || _b === void 0 ? void 0 : _b.tweet_results) === null || _c === void 0 ? void 0 : _c.result))
                                                             return null;
@@ -559,9 +560,11 @@ function crawl(_a) {
                                                             return null;
                                                         var tweetContent = result.legacy || result.tweet.legacy;
                                                         var userContent = ((_y = (_x = (_w = result.core) === null || _w === void 0 ? void 0 : _w.user_results) === null || _x === void 0 ? void 0 : _x.result) === null || _y === void 0 ? void 0 : _y.legacy) || result.tweet.core.user_results.result.legacy;
+                                                        var views = result.views || ((_z = result.tweet) === null || _z === void 0 ? void 0 : _z.views);
                                                         return {
                                                             tweet: tweetContent,
                                                             user: userContent,
+                                                            views: views
                                                         };
                                                     })
                                                         .filter(function (tweet) { return tweet !== null; });
@@ -574,7 +577,7 @@ function crawl(_a) {
                                                         console.info(chalk_1.default.green("Created new directory: ".concat(dirFullPath)));
                                                     }
                                                     rows = comingTweets.reduce(function (prev, current) {
-                                                        var _a, _b, _c;
+                                                        var _a, _b, _c, _d;
                                                         var tweet = (0, lodash_1.pick)(current.tweet, filteredFields);
                                                         var cleanTweetText = "".concat(tweet.full_text.replace(/,/g, " ").replace(/\n/g, " "));
                                                         if (IS_DETAIL_MODE) {
@@ -591,6 +594,7 @@ function crawl(_a) {
                                                         tweet["tweet_url"] = "https://twitter.com/".concat(current.user.screen_name, "/status/").concat(tweet.id_str);
                                                         tweet["image_url"] = ((_c = (_b = (_a = current.tweet.entities) === null || _a === void 0 ? void 0 : _a.media) === null || _b === void 0 ? void 0 : _b[0]) === null || _c === void 0 ? void 0 : _c.media_url_https) || "";
                                                         tweet["location"] = current.user.location || "";
+                                                        tweet["views_count"] = (_d = current.views) === null || _d === void 0 ? void 0 : _d.count;
                                                         var row = Object.values(convertValuesToStrings(tweet)).join(",");
                                                         return __spreadArray(__spreadArray([], prev, true), [row], false);
                                                     }, []);
