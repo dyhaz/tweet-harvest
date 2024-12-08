@@ -37,6 +37,7 @@ const filteredFields = [
   "reply_count",
   "retweet_count",
   "favorite_count",
+  "bookmark_count",
   "lang",
   "user_id_str",
   "conversation_id_str",
@@ -530,7 +531,7 @@ export async function crawl({
               }
             }
 
-            const headerRow = filteredFields.map((field) => `"${field}"`).join(",") + "\n";
+            const headerRow = [...filteredFields, "views_count"].map((field) => `"${field}"`).join(",") + "\n";
 
             if (!headerWritten) {
               headerWritten = true;
@@ -560,10 +561,12 @@ export async function crawl({
                 const tweetContent = result.legacy || result.tweet.legacy;
                 const userContent =
                   result.core?.user_results?.result?.legacy || result.tweet.core.user_results.result.legacy;
+                const views = result.views || result.tweet?.views;
 
                 return {
                   tweet: tweetContent,
                   user: userContent,
+                  views: views
                 };
               })
               .filter((tweet) => tweet !== null);
@@ -601,6 +604,7 @@ export async function crawl({
               tweet["tweet_url"] = `https://twitter.com/${current.user.screen_name}/status/${tweet.id_str}`;
               tweet["image_url"] = current.tweet.entities?.media?.[0]?.media_url_https || "";
               tweet["location"] = current.user.location || "";
+              tweet["views_count"] = current.views?.count;
 
               const row = Object.values(convertValuesToStrings(tweet)).join(",");
 
