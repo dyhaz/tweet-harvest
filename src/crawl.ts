@@ -378,7 +378,9 @@ export async function crawl({
             rateLimitCount = 0;
 
             console.log('data', responseJson.data?.tweetResult?.result);
-            retweetEntries = responseJson.data?.retweeters_timeline.timeline.instructions[0].entries;
+            if (responseJson.data?.retweeters_timeline.timeline.instructions && responseJson.data?.retweeters_timeline.timeline.instructions.length > 0) {
+              retweetEntries = responseJson.data?.retweeters_timeline.timeline.instructions[0].entries;
+            }
 
             if (!retweetEntries) {
               console.error("No more retweets found");
